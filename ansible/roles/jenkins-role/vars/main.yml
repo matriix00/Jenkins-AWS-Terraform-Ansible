@@ -1,0 +1,7 @@
+---
+# vars file for roles/jenkins-role
+# jenkins_pkg_list:
+#   - java-11-openjdk-devel
+#   - jenkins
+# jenkins_pkg_repo:
+#   -

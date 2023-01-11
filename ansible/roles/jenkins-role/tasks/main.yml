@@ -1,0 +1,96 @@
+---
+# tasks file for roles/jenkins-role
+
+
+- name: apt update
+  apt:
+    update_cache: yes
+  when: ansible_facts.distribution == "Ubuntu"
+
+
+
+- name:  Install openjdk-11-jdk
+  apt: 
+    name: openjdk-11-jdk
+    state: present
+  when: ansible_facts.distribution == "Ubuntu"
+
+- name: importing the GPG keys of  jenkins repo
+  apt_key:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+    state: present
+  when: ansible_facts.distribution == "Ubuntu"
+
+
+- name: Ensure Jenkins repository is added
+  apt_repository:
+    repo: deb http://pkg.jenkins.io/debian-stable binary/ 
+  when: ansible_facts.distribution == "Ubuntu"
+  
+- name:  Install jenkins
+  apt: 
+    name: jenkins
+    state: present
+  when: ansible_facts.distribution == "Ubuntu"
+
+
+- name: yum update 
+  ansible.builtin.yum:
+    update_cache: yes
+  when: ansible_facts.distribution in ['Amazon','RedHat']
+
+- name: Install java-11-openjdk-devel
+  ansible.builtin.yum:
+    name: java-11-openjdk-devel
+    state: present
+  when: ansible_facts.distribution in ['Amazon','RedHat']
+
+- name: Ensure Jenkins repository is added
+  yum_repository:
+    name: jenkins-ci
+    description: jenkins-ci package repository
+    baseurl: http://pkg.jenkins.io/redhat
+    gpgkey: https://pkg.jenkins.io/redhat/jenkins.io.key
+    gpgcheck: yes
+  when: ansible_facts.distribution in ['Amazon','RedHat']
+
+- name: add jenkins key
+  rpm_key:
+    state: present
+    key: https://pkg.jenkins.io/redhat/jenkins.io.key
+  when: ansible_facts.distribution in ['Amazon','RedHat']
+
+- name: install jenkins
+  ansible.builtin.yum:
+    name: jenkins
+    state: present
+    update_cache: true
+  when: ansible_facts.distribution in ['Amazon','RedHat']
+
+
+- name: "Starting jenkins"
+  service:
+      name: jenkins
+      state: started
+      enabled: yes
+
+- name: create jenkins home directory 
+  file:
+    path: /home/ubuntu/jenkins_home
+    state: directory
+    mode: '0755'
+
+- name: get remote jenkins admin password file
+  slurp:
+    src: /var/lib/jenkins/secrets/initialAdminPassword
+  register: adminpasswordfile
+  no_log: True
+
+- name: Print returned information
+  ansible.builtin.debug:
+    msg: "{{ adminpasswordfile.content | b64decode }}"
+    
+- name: set jenkins admin password
+  set_fact:
+    jenkins_admin_password: "{{ adminpasswordfile.content | b64decode | trim }}"
+  no_log: True
